@@ -1,5 +1,4 @@
 import pyaudio as pa
-import keyboard
 from vosk import Model, KaldiRecognizer, SetLogLevel
 import json
 import subprocess
@@ -27,8 +26,7 @@ class SpeechToTextEngine:
         recognized_text = ""
         return stream, rec, recognized_text
 
-    def listen_for_keywords(self, stream):
-        stream, rec, recognized_text = self.configure()
+    def listen_for_wake_word(self, stream):
         while True:
             data = stream.read(4000, exception_on_overflow=False)
             rec.AcceptWaveform(data)
@@ -36,58 +34,54 @@ class SpeechToTextEngine:
 
             if partial_result:
                 partial_text = json.loads(partial_result).get("partial", "")
-                if "listen" in partial_text.lower():
-                    print("Waking up ! Listening for input...")
-                    text_prompt = listen_for_speech_prompt(self, stream)
-                    return False, text_prompt
-                elif "stop recording" in partial_text.lower():
-                    print("Stop recording detected. Stopping...")
-                    return False
-                elif "write only mode" in partial_text.lower():
-                    print("Write only mode detected. Switching from speech to writting mode...")
-                    return False
-                else:
-                    print("No keyword detected. Speek to issue an input...")
-                    return True
-
-    def listen_for_speech_prompt(self, stream):
-        stream, rec, recognized_text = self.configure()
-        while True:
-            data = stream.read(4000, exception_on_overflow=False)
-            rec.AcceptWaveform(data)
-            partial_result = rec.PartialResult()
-
-            if partial_result:
-                partial_text = json.loads(partial_result).get("partial", "")
-                recognized_text += partial_text 
                 print("Partial Result:", partial_text)
 
+                if "wake up" in partial_text.lower():
+                    print("Wake up detected! Listening for command...")
+                    return True
+
+    def listen_for_command(self, stream):
+        while True:
+            data = stream.read(4000, exception_on_overflow=False)
+            rec.AcceptWaveform(data)
+            partial_result = rec.PartialResult()
+
+            if partial_result:
+                partial_text = json.loads(partial_result).get("partial", "")
+                print("Partial Result:", partial_text)
+
+                # Check for specific commands or phrases
+                if "stop listening" in partial_text.lower():
+                    print("Stop listening command detected. Stopping...")
+                    return False
+
+                # Handle other commands based on your requirements
                 if "open browser" in partial_text.lower():
                     print("Opening the browser...")
                     subprocess.run(["start", "https://www.google.com"])
-                if keyboard.is_pressed('p'):
-                        print(f''' KeyboardInterrupt: Stopping real-time listening
-                        recognized text being:{recognized_text} ''')
-                        return recognized_text,False
 
     def real_time_listen(self):
         stream, rec, recognized_text = self.configure()
         try:
             while True:
-                speech_input = self.listen_for_keywords(stream)
-                if self.listen_for_keywords(stream):
+                # Listen for the wake-up word
+                if self.listen_for_wake_word(stream):
                     # Listen for a command
-                    if not self.listen_for_speech_prompt(stream):
+                    if not self.listen_for_command(stream):
                         break  # Stop listening if requested
 
         except KeyboardInterrupt:
             print("KeyboardInterrupt: Stopping real-time listening")
 
+        # Save the recognized text to a file
+        with open(self.save_textfile_dir, "w") as output_file:
+            output_file.write(recognized_text)
+
         stream.stop_stream()
         stream.close()
         p.terminate()
 
-        print(f"Recognized text {speech_input}")
+        print(f"Recognized text saved to: {self.save_textfile_dir}")
 
 def main():
     model_path = "D:\\vizuosense_mine\\STT\\Resources\\vosk-model-small-en-us-0.15"
