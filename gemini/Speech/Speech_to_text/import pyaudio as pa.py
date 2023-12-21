@@ -27,7 +27,6 @@ class SpeechToTextEngine:
         return stream, rec, recognized_text
 
     def listen_for_wake_word(self, stream):
-        stream, rec, recognized_text = self.configure()
         while True:
             data = stream.read(4000, exception_on_overflow=False)
             rec.AcceptWaveform(data)
@@ -38,18 +37,10 @@ class SpeechToTextEngine:
                 print("Partial Result:", partial_text)
 
                 if "wake up" in partial_text.lower():
-                    print("Waking up ! Listening for command...")
+                    print("Wake up detected! Listening for command...")
                     return True
-                if "stop recording" in partial_text.lower():
-                    print("Stop recording detected. Stopping...")
-                    return False
-                if "write only mode" in partial_text.lower():
-                    print("Write only mode detected. Stopping...")
-                    
-                    return False
 
-    def listen_for_speech_prompt(self, stream):
-        stream, rec, recognized_text = self.configure()
+    def listen_for_command(self, stream):
         while True:
             data = stream.read(4000, exception_on_overflow=False)
             rec.AcceptWaveform(data)
@@ -61,8 +52,9 @@ class SpeechToTextEngine:
 
                 # Check for specific commands or phrases
                 if "stop listening" in partial_text.lower():
-                    print("Switching to standby mode. Switching...")
+                    print("Stop listening command detected. Stopping...")
                     return False
+
                 # Handle other commands based on your requirements
                 if "open browser" in partial_text.lower():
                     print("Opening the browser...")
@@ -75,7 +67,7 @@ class SpeechToTextEngine:
                 # Listen for the wake-up word
                 if self.listen_for_wake_word(stream):
                     # Listen for a command
-                    if not self.listen_for_speech_prompt(stream):
+                    if not self.listen_for_command(stream):
                         break  # Stop listening if requested
 
         except KeyboardInterrupt:

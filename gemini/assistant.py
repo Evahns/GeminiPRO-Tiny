@@ -3,6 +3,7 @@ from config import GOOGLE_API_KEY
 import google.generativeai as genai
 from IPython.display import display, Markdown
 from Speech.Text_to_speech.text_to_speech import text_to_speech_engine as tts
+from Speech.Text_to_speech.Speech_to_text import speech_to_text_engine as stt
 # Used to securely store your API key
 genai.configure(api_key=GOOGLE_API_KEY)
 
